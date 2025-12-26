@@ -209,7 +209,7 @@ export default function TestGeminiPage() {
             <ol className="list-decimal list-inside space-y-1 text-sm text-blue-800 dark:text-blue-200">
               <li>Check the configuration status above</li>
               <li>Select a language from the dropdown</li>
-              <li>Click "Test Gemini API" button</li>
+              <li>Click the Test Gemini API button</li>
               <li>Verify the response is in the selected language</li>
               <li>Check the browser console and server logs for detailed debugging</li>
             </ol>
