@@ -1,0 +1,249 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  KEBELE_STAFF
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum FarmType {
+  CROP
+  LIVESTOCK
+  MIXED
+}
+
+enum WaterAccess {
+  RAIN_FED
+  IRRIGATION
+  MIXED
+}
+
+enum SubscriptionPlan {
+  FREE
+  PREMIUM
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+enum AlertType {
+  DROUGHT
+  HEAVY_RAINFALL
+  TEMPERATURE_EXTREME
+  PLANTING_REMINDER
+  MARKET_PRICE
+  CUSTOM
+}
+
+enum AlertSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum AlertStatus {
+  QUEUED
+  SENT
+  FAILED
+  CANCELLED
+}
+
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  email     String?  @unique
+  phone     String?  @unique
+  passwordHash String
+  role      UserRole @default(KEBELE_STAFF)
+  kebeleId  String?
+  kebele    Kebele?  @relation(fields: [kebeleId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  auditLogs AuditLog[]
+
+  @@index([email])
+  @@index([kebeleId])
+}
+
+model Region {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  code      String?  @unique
+  createdAt DateTime @default(now())
+
+  zones Zone[]
+}
+
+model Zone {
+  id        String   @id @default(uuid())
+  name      String
+  code      String?
+  regionId  String
+  region    Region   @relation(fields: [regionId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  woredas Woreda[]
+
+  @@unique([regionId, name])
+  @@index([regionId])
+}
+
+model Woreda {
+  id        String   @id @default(uuid())
+  name      String
+  code      String?
+  zoneId    String
+  zone      Zone     @relation(fields: [zoneId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  kebeles Kebele[]
+
+  @@unique([zoneId, name])
+  @@index([zoneId])
+}
+
+model Kebele {
+  id        String   @id @default(uuid())
+  name      String
+  code      String?
+  woredaId  String
+  woreda    Woreda   @relation(fields: [woredaId], references: [id], onDelete: Cascade)
+  latitude  Float?
+  longitude Float?
+  createdAt DateTime @default(now())
+
+  users    User[]
+  farmers  Farmer[]
+  weatherSnapshots WeatherSnapshot[]
+
+  @@unique([woredaId, name])
+  @@index([woredaId])
+}
+
+model Farmer {
+  id            String       @id @default(uuid())
+  fullName      String
+  phone         String       @unique
+  language      String       @default("am")
+  kebeleId      String
+  kebele        Kebele       @relation(fields: [kebeleId], references: [id])
+  latitude      Float?
+  longitude     Float?
+  farmType      FarmType
+  cropType      String?
+  soilType      String?
+  farmSizeHa    Float?
+  waterAccess   WaterAccess
+  consent       Boolean      @default(false)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  subscriptions Subscription[]
+  advisories    Advisory[]
+  alerts        Alert[]
+
+  @@index([kebeleId])
+  @@index([phone])
+  @@index([fullName])
+}
+
+model Subscription {
+  id        String            @id @default(uuid())
+  farmerId String
+  farmer   Farmer            @relation(fields: [farmerId], references: [id], onDelete: Cascade)
+  plan     SubscriptionPlan  @default(FREE)
+  status   SubscriptionStatus @default(ACTIVE)
+  startDate DateTime         @default(now())
+  endDate   DateTime?
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  @@index([farmerId])
+  @@index([status])
+}
+
+model WeatherSnapshot {
+  id          String   @id @default(uuid())
+  kebeleId    String?
+  kebele      Kebele?  @relation(fields: [kebeleId], references: [id])
+  latitude    Float?
+  longitude   Float?
+  periodStart DateTime
+  periodEnd   DateTime
+  rawJson     Json
+  createdAt   DateTime @default(now())
+
+  @@index([kebeleId])
+  @@index([periodStart, periodEnd])
+}
+
+model Advisory {
+  id                String   @id @default(uuid())
+  farmerId          String
+  farmer            Farmer   @relation(fields: [farmerId], references: [id], onDelete: Cascade)
+  generatedAt       DateTime @default(now())
+  riskSummaryJson   Json
+  recommendationsJson Json
+  renderedText      String
+  language          String   @default("am")
+  explanationJson   Json?
+  createdAt         DateTime @default(now())
+
+  @@index([farmerId])
+  @@index([generatedAt])
+}
+
+model Alert {
+  id              String        @id @default(uuid())
+  farmerId        String
+  farmer          Farmer        @relation(fields: [farmerId], references: [id], onDelete: Cascade)
+  type            AlertType
+  severity        AlertSeverity
+  messageText     String
+  scheduleTime    DateTime
+  status          AlertStatus   @default(QUEUED)
+  providerMessageId String?
+  attempts        Int           @default(0)
+  lastAttemptAt   DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([farmerId])
+  @@index([status])
+  @@index([scheduleTime])
+}
+
+model AuditLog {
+  id          String   @id @default(uuid())
+  actorUserId String?
+  actorUser   User?    @relation(fields: [actorUserId], references: [id])
+  action      String
+  entityType  String
+  entityId    String?
+  beforeJson  Json?
+  afterJson   Json?
+  createdAt   DateTime @default(now())
+
+  @@index([actorUserId])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+}
+
+
+
+

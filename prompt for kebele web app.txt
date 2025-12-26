@@ -1,0 +1,170 @@
+You are a senior full-stack engineer + product architect. Build a production-ready “Kebele Subscription Web Portal” for ET-SAFE (AgriAdapt) that enables kebele agriculture offices to register farmers who do NOT have smartphones, then automatically generate localized climate-smart recommendations and schedule SMS alerts to the farmer’s phone.
+
+CONTEXT  GOAL
+ET-SAFE is a climate-smart farming advisor. The solution includes localized weather forecasts, droughtrainfall alerts via SMS, plantingharvest guidance, market price updates, and “Gebre AI” local-language advisory. The kebele web portal is the bridge for basic phone users a farmer visits kebele office, staff registers farmer details, then system generates location-based alerts and recommendations and sends SMS.
+
+PRIMARY USERS & ROLES
+1) Kebele Staff (Registrar)
+- Can create and manage farmer profiles for their kebele only.
+- Can enroll farmer into SMS alert subscription.
+- Can view farmer advisory summary and printshare a simple farmer card (ID + phone).
+2) WoredaZone Admin (Supervisor)
+- Oversees multiple kebeles.
+- Can view analytics and approve bulk imports.
+- Can manage alert templates and escalation policies.
+3) Super Admin (Platform)
+- Manages everything usersroles, kebeles, integrations, pricing tiers, data providers, and system-wide settings.
+- Manages advisory rule sets and AI prompt templates.
+
+CORE WORKFLOW (MUST IMPLEMENT)
+A) Farmer Registration at Kebele
+- Staff enters
+  - Full name
+  - Phone number (unique, E.164 recommended)
+  - RegionZoneWoredaKebele (hierarchical location)
+  - GPS coordinates (optional, but support latlon; if missing, geocode kebele centroid)
+  - Farm type crop  livestock  mixed
+  - Cropseed type (e.g., teff, maize, wheat, sorghum, barley, etc.)
+  - Soil type clayloamsandblack soil (expandable)
+  - Farm size (hectares)
+  - Water access rain-fed  irrigation  mixed
+  - Preferred language Amharic  Afaan Oromo  Tigrigna (expandable)
+  - Consent checkbox for SMS and data usage
+- On submit
+  - Create farmer profile
+  - Create subscription record (freepremium)
+  - Generate initial advisory package (see Advisory Engine)
+  - Schedule outbound SMS alerts (see Alert Engine)
+
+B) Advisory Generation (Rule + AI hybrid)
+- Build an “Advisory Engine” that takes farmer profile + location + (weather forecast + seasonal context) and outputs
+  1) Weather risk summary (next 7–14 days) rainfall probability, drought risk, heat stress
+  2) Action recommendations
+     - planting window guidance
+     - irrigation  water-saving actions
+     - soil & fertilizer suggestion placeholders (expand later with IoT soil tests)
+     - pestdisease risk alerts (rule-based placeholder)
+  3) “Gebre AI” response template a local-language explanation in simple terms.
+- For hackathon implement a deterministic rules engine first (JSON rules) and optionally an AI layer
+  - Rules engine must be testable and explainable.
+  - AI layer (optional) uses a “prompt template” to rewrite recommendations into the farmer’s selected language with culturally appropriate tone. If AI fails, fall back to rules text.
+
+C) SMS Alert Engine
+- Create alert types
+  - Drought alert (no rain expected for X days)
+  - Heavy rainfall alert
+  - Temperature extreme alert
+  - Planting reminder (seasonal)
+  - Market price update (optional)
+- The system must
+  - Generate alerts for each farmer based on thresholds
+  - Queue messages for sending
+  - Log delivery status and retries
+- For hackathon build
+  - Implement SMS provider interface with a “MockSMSProvider” (writes to DB + console).
+  - Provide a clean adapter so EthioTelecom (or any gateway) can be plugged later.
+
+D) Dashboard + Reporting
+- Kebele dashboard
+  - total farmers registered
+  - farmers by crop type, soil type, farm size bucket
+  - active subscriptions
+  - recent alerts sent and status
+- Admin dashboard
+  - kebele comparison
+  - alert performance (sentdeliveredfailed)
+  - export CSV
+  - roleuser management
+
+DATA MODEL (DESIGN + IMPLEMENT)
+Entities
+- User(id, name, emailphone login, password hash, role, kebele_id nullable, created_at)
+- Role(enum KEBELE_STAFF, ADMIN, SUPER_ADMIN)
+- Location tables Region, Zone, Woreda, Kebele (+ optional latlon)
+- Farmer(id, full_name, phone, language, kebele_id, lat, lon, farm_type, water_access, soil_type, crop_type, farm_size_ha, consent, created_at)
+- Subscription(id, farmer_id, plan(enum FREE, PREMIUM), status, start_date, end_date nullable)
+- WeatherSnapshot(id, kebele_id or latlon, period_start, period_end, raw_json, created_at)
+- Advisory(id, farmer_id, generated_at, risk_summary_json, recommendations_json, rendered_text, language, explanation_json)
+- Alert(id, farmer_id, type, severity, message_text, schedule_time, status(enum QUEUED,SENT,FAILED), provider_message_id, attempts, created_at)
+- AuditLog(id, actor_user_id, action, entity_type, entity_id, before_json, after_json, created_at)
+
+NON-FUNCTIONAL REQUIREMENTS
+- Security RBAC, JWT auth, password hashing, audit logs for edits.
+- Validation phone number format, farm size numeric, required fields.
+- Localization UI supports at least English + Amharic (i18n framework); messages must support local scripts.
+- Offline-friendly kebele office fast UI, minimal bandwidth, caching.
+- Explainability advisory output must include “why” (which rules triggered).
+- Data privacy consent flag required before any SMS is sent.
+
+TECH STACK (CHOOSE ONE AND IMPLEMENT FULLY)
+Option A (recommended for speed) Next.js (App Router) + TypeScript + Tailwind + Prisma + PostgreSQL.
+- Auth NextAuth or custom JWT.
+- API routes for backend logic.
+Option B Django + DRF + Postgres + simple React frontend.
+
+Pick Option A unless there is a strong reason not to. Implement runnable code with Docker Compose for local dev
+- web
+- db (postgres)
+- migrations
+- seed data
+
+FEATURES TO DELIVER (HACKATHON “DONE”)
+1) Auth + RBAC pages
+   - login
+   - dashboard (role-based)
+   - adminusers (admin & super-admin)
+2) Kebele Farmer Registration
+   - farmersnew (form)
+   - farmers (list, search by phonename)
+   - farmers[id] (profile, advisory history, alerts history)
+3) Advisory generation endpoint
+   - POST apiadvisorygeneratefarmerId=
+   - Uses rules + mock weather
+4) Alert scheduling
+   - cron-like job (in-app scheduler) or background worker simulation
+     - generate alerts daily for active subscriptions
+     - queue and “send” via MockSMSProvider
+5) Dashboards + export
+   - chartstables and CSV export of farmers for a kebele
+6) Documentation
+   - README with setup instructions, env vars, and demo credentials
+   - Architecture diagram (ASCII ok) of data flow registration → advisory → alert queue → SMS provider
+
+ADVISORY RULES (STARTER RULE SET – IMPLEMENT)
+Implement these sample rules and make them easy to expand via JSON config
+- If rainfall forecast next 14 days  threshold AND water_access is rain-fed → Drought risk HIGH → recommend water saving, delayed planting, rainwater harvesting.
+- If heavy rain probability  threshold in next 48h → Flooderosion risk MEDHIGH → recommend drainage, cover crops, avoid fertilizer application.
+- If temperature extreme (hot)  threshold → heat stress risk → advise irrigation timing, shade where possible.
+- If soil_type = clay and heavy rain predicted → warn about waterlogging and recommend drainage.
+- If crop_type = teff and drought risk high → suggest drought-resilient practices and planting window adjustments (generic text; no hard agronomy claims beyond safe general guidance).
+
+WEATHER DATA (HACKATHON MODE)
+- Create a WeatherService interface
+  - getForecast(lat, lon) returns mock 14-day forecast with rainfall_prob, rainfall_mm, temp_max, temp_min
+- Provide mock generator seeded by location so the same kebele yields consistent forecast.
+- Store WeatherSnapshot so advisories can be regenerated consistently.
+
+UIUX REQUIREMENTS
+- Clean, simple kebele-office workflow (few clicks).
+- Print-friendly farmer card view.
+- Use form sections Personal, Location, Farm Details, Preferences, Consent.
+- Provide “Generate Advisory” button after registration with success state.
+
+TESTING
+- Unit tests for rules engine
+- Integration test for registration → advisory → alert creation
+
+OUTPUT FORMAT
+- Create the entire codebase structure, key files, and working implementation.
+- Provide commands to run locally.
+- Provide seed data for at least 2 kebeles and 10 farmers.
+- Do NOT leave TODO placeholders for core logic. If something is mocked, state clearly and implement the mock fully.
+
+NOW START
+1) Propose the folder structure.
+2) Generate the full code (or as much as fits) with clear file boundaries.
+3) Include Prisma schema, migrations, and seed script.
+4) Include the rules JSON and rules engine code.
+5) Include mock weather + mock SMS provider.
+6) Include pagescomponents for the flows above.
+7) Include README with setup + demo flow steps.

@@ -1,0 +1,120 @@
+{
+  "rules": [
+    {
+      "id": "drought_risk_rainfed",
+      "name": "Drought Risk for Rain-fed Farms",
+      "condition": {
+        "weather": {
+          "droughtRisk": "HIGH"
+        },
+        "farmer": {
+          "waterAccess": "RAIN_FED"
+        }
+      },
+      "risk": "HIGH",
+      "recommendations": [
+        "Delay planting until rainfall improves",
+        "Implement water-saving techniques",
+        "Consider rainwater harvesting",
+        "Use drought-resistant crop varieties"
+      ],
+      "explanation": "Low rainfall forecast combined with rain-fed farming creates high drought risk"
+    },
+    {
+      "id": "heavy_rainfall_flood",
+      "name": "Heavy Rainfall and Flood Risk",
+      "condition": {
+        "weather": {
+          "floodRisk": "HIGH"
+        }
+      },
+      "risk": "HIGH",
+      "recommendations": [
+        "Prepare drainage systems",
+        "Avoid fertilizer application before heavy rain",
+        "Cover exposed soil with mulch or cover crops",
+        "Move livestock to higher ground if applicable"
+      ],
+      "explanation": "Heavy rainfall expected, increasing flood and erosion risk"
+    },
+    {
+      "id": "clay_soil_waterlogging",
+      "name": "Clay Soil Waterlogging Risk",
+      "condition": {
+        "weather": {
+          "floodRisk": ["MEDIUM", "HIGH"]
+        },
+        "farmer": {
+          "soilType": "clay"
+        }
+      },
+      "risk": "MEDIUM",
+      "recommendations": [
+        "Improve drainage around fields",
+        "Avoid working soil when wet",
+        "Consider raised beds for sensitive crops"
+      ],
+      "explanation": "Clay soil retains water longer, increasing waterlogging risk during heavy rain"
+    },
+    {
+      "id": "heat_stress",
+      "name": "Heat Stress Warning",
+      "condition": {
+        "weather": {
+          "maxTemp": {
+            "gte": 35
+          }
+        }
+      },
+      "risk": "MEDIUM",
+      "recommendations": [
+        "Water crops early morning or late evening",
+        "Provide shade for sensitive crops if possible",
+        "Increase irrigation frequency",
+        "Monitor livestock for heat stress"
+      ],
+      "explanation": "High temperatures can cause heat stress to crops and livestock"
+    },
+    {
+      "id": "teff_drought",
+      "name": "Teff Drought Resilience",
+      "condition": {
+        "weather": {
+          "droughtRisk": "HIGH"
+        },
+        "farmer": {
+          "cropType": "teff"
+        }
+      },
+      "risk": "HIGH",
+      "recommendations": [
+        "Adjust planting window to optimal timing",
+        "Use drought-resistant teff varieties",
+        "Implement soil moisture conservation",
+        "Consider intercropping with legumes"
+      ],
+      "explanation": "Teff requires careful water management during drought conditions"
+    },
+    {
+      "id": "planting_window_optimal",
+      "name": "Optimal Planting Window",
+      "condition": {
+        "weather": {
+          "droughtRisk": "LOW",
+          "floodRisk": "LOW"
+        }
+      },
+      "risk": "LOW",
+      "recommendations": [
+        "Current conditions are favorable for planting",
+        "Prepare fields and seeds",
+        "Monitor weather for next 7 days before planting"
+      ],
+      "explanation": "Weather conditions are optimal for planting activities"
+    }
+  ]
+}
+
+
+
+
