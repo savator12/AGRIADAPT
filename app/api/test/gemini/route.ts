@@ -19,10 +19,29 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    // Declare modelName outside try block so it's accessible in catch
+    // Declare variables outside try block so they're accessible in catch
     let modelName = 'gemini-2.5-flash'
     let genAI: any = null
     
+    const languageMap: Record<string, string> = {
+      'am': 'Amharic',
+      'or': 'Afaan Oromo',
+      'ti': 'Tigrigna',
+      'en': 'English',
+    }
+
+    const languageName = languageMap[language] || language
+
+    const prompt = `Write a short greeting message in ${languageName} language. 
+      
+Language requirements:
+${language === 'am' ? 'Write in Amharic using Ge\'ez script (አማርኛ). Example: "ሰላም"' : ''}
+${language === 'or' ? 'Write in Afaan Oromo using Latin script. Example: "Akkam"' : ''}
+${language === 'ti' ? 'Write in Tigrigna using Ge\'ez script (ትግርኛ). Example: "ሰላም"' : ''}
+${language === 'en' ? 'Write in English.' : ''}
+
+Write ONLY in ${languageName}. Do not mix languages.`
+
     try {
       const { GoogleGenerativeAI } = await import('@google/generative-ai')
       genAI = new GoogleGenerativeAI(process.env.GOOGLE_GEMINI_API_KEY)
@@ -49,25 +68,6 @@ export async function GET(request: NextRequest) {
       const model = genAI.getGenerativeModel({ model: modelName })
       
       console.log(`[Test Gemini] Using model: ${modelName}`)
-
-      const languageMap: Record<string, string> = {
-        'am': 'Amharic',
-        'or': 'Afaan Oromo',
-        'ti': 'Tigrigna',
-        'en': 'English',
-      }
-
-      const languageName = languageMap[language] || language
-
-      const prompt = `Write a short greeting message in ${languageName} language. 
-      
-Language requirements:
-${language === 'am' ? 'Write in Amharic using Ge\'ez script (አማርኛ). Example: "ሰላም"' : ''}
-${language === 'or' ? 'Write in Afaan Oromo using Latin script. Example: "Akkam"' : ''}
-${language === 'ti' ? 'Write in Tigrigna using Ge\'ez script (ትግርኛ). Example: "ሰላም"' : ''}
-${language === 'en' ? 'Write in English.' : ''}
-
-Write ONLY in ${languageName}. Do not mix languages.`
 
       // Add retry logic for rate limits
       let text: string = ''

@@ -105,6 +105,7 @@ export default function FarmerRegistrationForm({ kebele, kebeles, userRole }: Fa
                   fullName: '',
                   phone: '',
                   language: 'am',
+                  kebeleName: kebele?.name || '',
                   kebeleId: kebele?.id || '',
                   latitude: kebele?.latitude?.toString() || '',
                   longitude: kebele?.longitude?.toString() || '',

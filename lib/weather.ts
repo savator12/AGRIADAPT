@@ -96,7 +96,7 @@ class WeatherService {
     })
     
     if (existing) {
-      return existing.rawJson as WeatherData
+      return existing.rawJson as unknown as WeatherData
     }
     
     // Generate new forecast
